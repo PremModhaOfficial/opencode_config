@@ -1,14 +1,14 @@
 {
   "$schema": "https://opencode.ai/config.json",
   // Main model - use free model for most tasks
-  "model": "github-copilot/gpt-4.1",
+  "model": "github-copilot/grok-code-fast-1",
   "agent": {
     // STRATEGY: Use FREE models (0x multiplier) for parallel tasks
     // Multiple builders can run in parallel for multi-file edits
     "builder-1": {
       "description": "Primary builder for implementation tasks. Uses memory MCP to avoid redoing work. Can spawn parallel with builder-2/3 for multi-file edits",
       "mode": "subagent",
-      "model": "github-copilot/gpt-4.1",
+      "model": "github-copilot/grok-code-fast-1",
       "temperature": 0.3,
       "tools": {
         "bash": true,
@@ -28,7 +28,7 @@
     "builder-2": {
       "description": "Secondary builder - runs in parallel with builder-1 for multi-file edits",
       "mode": "subagent",
-      "model": "github-copilot/gpt-4.1",
+      "model": "github-copilot/grok-code-fast-1",
       "temperature": 0.3,
       "tools": {
         "bash": true,
@@ -48,7 +48,7 @@
     "builder-3": {
       "description": "Tertiary builder - for massive refactors (3+ files). Runs parallel with builder-1 and builder-2",
       "mode": "subagent",
-      "model": "github-copilot/gpt-4.1",
+      "model": "github-copilot/grok-code-fast-1",
       "temperature": 0.3,
       "tools": {
         "bash": true,
@@ -68,7 +68,7 @@
     "tester-fast": {
       "description": "Ultra-fast test runner. Uses cheapest model for repetitive test execution",
       "mode": "subagent",
-      "model": "github-copilot/grok-code-fast-1",
+      "model": "opencode/grok-code-fast-1",
       "temperature": 0.1,
       "tools": {
         "bash": true,
@@ -93,7 +93,7 @@
     "researcher-deep": {
       "description": "Deep research with web access. Uses DeepWiki MCP and search. Can run parallel with researcher-docs",
       "mode": "subagent",
-      "model": "github-copilot/gpt-5-mini",
+      "model": "github-copilot/grok-code-fast-1",
       "temperature": 0.2,
       "tools": {
         "webfetch": true,
@@ -113,7 +113,7 @@
     "researcher-docs": {
       "description": "Documentation researcher - reads local docs, can run parallel with researcher-deep",
       "mode": "subagent",
-      "model": "github-copilot/gpt-5-mini",
+      "model": "github-copilot/grok-code-fast-1",
       "temperature": 0.2,
       "tools": {
         "read": true,
@@ -148,7 +148,7 @@
     "architect": {
       "description": "High-level architecture and complex refactoring. Only use for big decisions",
       "mode": "subagent",
-      "model": "github-copilot/gpt-5",
+      "model": "github-copilot/claude-sonnet-4",
       "temperature": 0.2,
       "tools": {
         "read": true,
@@ -163,15 +163,85 @@
         "edit": "ask"
       }
     },
-    "memory-manager": {
-      "description": "Manages context and memory. Updates Chroma and SQLite with learnings. Runs in background",
+    "code-reviewer": {
+      "description": "Code quality and performance analysis. Reviews implementations for best practices and optimization opportunities",
+      "mode": "subagent",
+      "model": "github-copilot/claude-sonnet-4",
+      "temperature": 0.1,
+      "tools": {
+        "read": true,
+        "grep": true,
+        "glob": true,
+        "filesystem": true,
+        "serena": true,
+        "deepwiki": true,
+        "search-server": true,
+        "chroma": true
+      },
+      "permission": {
+        "edit": "deny",
+        "bash": "deny"
+      }
+    },
+    "security-analyzer": {
+      "description": "Security vulnerability analysis and threat assessment for sensitive code changes",
+      "mode": "subagent",
+      "model": "github-copilot/claude-sonnet-4",
+      "temperature": 0.1,
+      "tools": {
+        "read": true,
+        "grep": true,
+        "search-server": true,
+        "filesystem": true,
+        "bash": true,
+        "chroma": true
+      },
+      "permission": {
+        "edit": "deny",
+        "bash": {
+          "npm audit": "allow",
+          "safety check": "allow",
+          "bandit": "allow",
+          "gosec": "allow",
+          "*security*": "allow",
+          "*": "ask"
+        }
+      }
+    },
+    "task-orchestrator": {
+      "description": "Expert in analyzing tasks and creating optimal execution plans using available tools. Converts serial task lists into parallel dependency trees",
+      "mode": "subagent",
+      "model": "github-copilot/claude-sonnet-4",
+      "temperature": 0.2,
+      "tools": {
+        "read": true,
+        "grep": true,
+        "glob": true,
+        "sqlite": true,
+        "chroma": true,
+        "filesystem": true,
+        "webfetch": true,
+        "search-server": true,
+        "deepwiki": true,
+        "bash": true,
+        "edit": true,
+        "write": true
+      },
+      "permission": {
+        "edit": "ask",
+        "bash": "ask"
+      }
+    },
+    "memory-specialist": {
+      "description": "Manages context and memory. Updates Chroma and SQLite with learnings. Captures successful patterns and prevents repeated mistakes",
       "mode": "subagent",
       "model": "github-copilot/grok-code-fast-1",
       "temperature": 0.1,
       "tools": {
         "read": true,
         "sqlite": true,
-        "chroma": true
+        "chroma": true,
+        "serena": true
       },
       "permission": {
         "edit": "deny",
@@ -207,18 +277,7 @@
       "enabled": true,
       "environment": {}
     },
-    "sqlite": {
-      "type": "local",
-      "command": [
-        "npx",
-        "-y",
-        "mcp-sqlite",
-        "--db-path",
-        "/home/prem-modha/.local/share/chroma/chroma.sqlite3"
-      ],
-      "enabled": true,
-      "environment": {}
-    },
+
     "chroma": {
       "type": "local",
       "command": [
@@ -237,6 +296,17 @@
         "npx",
         "-y",
         "mcp-deepwiki@latest"
+      ],
+      "enabled": true,
+      "environment": {}
+    },
+    "sqlite": {
+      "type": "local",
+      "command": [
+        "npx",
+        "mcp-server-sqlite",
+        "--db",
+        "/home/prem-modha/.config/opencode/memory.db"
       ],
       "enabled": true,
       "environment": {}
