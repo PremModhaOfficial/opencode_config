@@ -1,0 +1,105 @@
+{
+	"$schema": "https://opencode.ai/config.json",
+	"provider": {
+		"minimax": {
+			"npm": "@ai-sdk/anthropic",
+			"options": {
+				"baseURL": "https://api.minimax.io/anthropic/v1",
+				"apiKey": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJHcm91cE5hbWUiOiJQcmVtIE1vZGhhIiwiVXNlck5hbWUiOiJQcmVtIE1vZGhhIiwiQWNjb3VudCI6IiIsIlN1YmplY3RJRCI6IjE5ODM4NjIxOTcxNjM0MDE5MzIiLCJQaG9uZSI6IiIsIkdyb3VwSUQiOiIxOTgzODYyMTk3MTU5MjAzNTMyIiwiUGFnZU5hbWUiOiIiLCJNYWlsIjoicHJlbW1vZGhhb2ZmaWNpYWxAZ21haWwuY29tIiwiQ3JlYXRlVGltZSI6IjIwMjUtMTAtMzAgMjA6NTg6NTMiLCJUb2tlblR5cGUiOjEsImlzcyI6Im1pbmltYXgifQ.vTm2KRCrdMVHzRG17AZnABD2FL2TX6ZQz4_KuqplS63PJZbardhNTO11Z3RiIoUVQjYJoED0KPNz6GOmKrGM9huG4XskCmfaGp00a58lGQ1XqYfW-YOFfEwUK79dvqzIz9rFm-0hQwOfrySPm360YWMTaAPLiFKyFL8-cfXwId1NyTXPae2puCFvYB5FB2WsByrmGIO0Q5WWEMT7pxA8qNv5_QI-FWAjA0YdlMvGX3Q-d_gyJkyyGj3aEo-cpNaNlmlVjCN-KdHMawiJXd0I4n6B4zuE_w0D-KIX6BY0ldItc6RhEzWdG8q0Fb32tjUEtVvaNCSFg-b33pSNVqUlDA"
+			},
+			"models": {
+				"MiniMax-M2": {
+					"name": "MiniMax-M2"
+				}
+			}
+		}
+	},
+	"mcp": {
+		/*
+      ======================================================================
+      1. SERENA_CODE_AGENT: Structural Code Memory (LSP Integration)
+      - Uses uvx to run the server directly from the latest GitHub source.
+      - Auto-activates project based on current working directory (cwd)
+      ======================================================================
+    */
+		"serena_code_agent": {
+			"type": "local",
+			"enabled": true,
+			"command": [
+				"uvx",
+				// Executes Serena directly from the latest source code
+				"--from",
+				"git+https://github.com/oraios/serena",
+				"serena",
+				"start-mcp-server",
+				"--project",
+				"research/mcp-agentic-framework",
+				"--context",
+				"ide-assistant"
+			]
+		},
+		/*
+      ======================================================================
+      2. PROJECT_KNOWLEDGE_GRAPH: Relational Memory (SQLite)
+      - Using @modelcontextprotocol/server-memory for persistent graph storage
+      ======================================================================
+    */
+		"project_knowledge_graph": {
+			"type": "local",
+			"enabled": true,
+			"command": [
+				"bash",
+				"-c",
+				"MEMORY_FILE_PATH=/home/prem-modha/.config/opencode/.mcp/knowledge_graph.db node /usr/lib/node_modules/@modelcontextprotocol/server-memory/dist/index.js"
+			]
+		},
+		/*
+       ======================================================================
+       3. PROJECT_SEMANTIC_MEMORY: Vector Memory (Chroma DB)
+       - Using official chroma-mcp for semantic similarity search
+       - Provides vector search, full text search, and metadata filtering
+       ======================================================================
+     */
+		"project_semantic_memory": {
+			"type": "local",
+			"enabled": true,
+			"command": [
+				"uvx",
+				"chroma-mcp",
+				"--client-type",
+				"persistent",
+				"--data-dir",
+				"./.mcp/chroma_data"
+			]
+		},
+		/*
+          ======================================================================
+          4. AGENTIC_FRAMEWORK: Multi-Agent Communication
+          - Provides tools for agent registration, messaging, and collaboration
+          - Enables true parallel subagent execution
+          - Supports bidirectional agent communication
+          ======================================================================
+        */
+		"agentic-framework": {
+			"type": "remote",
+			"enabled": true,
+			"url": "http://127.0.0.1:3113/mcp"
+		},
+		/*
+          ======================================================================
+          5. DEEPWIKI_MCP: DeepWiki Access Server
+          - Provides access to deepwiki.com for information retrieval
+          - Fan-made MCP server using npx for easy installation
+          ======================================================================
+        */
+		"deepwiki_mcp": {
+			"type": "local",
+			"enabled": true,
+			"command": [
+				"npx",
+				"-y",
+				"deepwiki-mcp@latest"
+			]
+		}
+	}
+}
